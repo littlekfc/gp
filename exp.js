@@ -20,12 +20,12 @@ E.ALG = {
 //cpu,memory,bandwidth,storage
 E.VM = [[1,512,12,60],[4,512,12,60],[1,2048,12,60],[1,512,48,60],[1,512,12,1024],
         [4,2048,48,1024],[16,2048,48,1024],[4,4096,48,1024],[4,2048,96,1024],[4,2048,48,4096] ];
-   //     [8,4096,192,4096],[32,4096,192,4096],[8,8192,192,4096],[8,4096,768,4096],[8,4096,192,16384]];
+ //       [8,4096,192,4096],[32,4096,192,4096],[8,8192,192,4096],[8,4096,768,4096],[8,4096,192,16384]];
         //used,total,remain
-E.M = [ [[0,0,0,0], [10,8704,2000,17000], [0.5, 128, 1, 10]], 
-           [[0,0,0,0], [40,2048,2000,17000], [0.5, 128, 1, 10]], 
-           [[0,0,0,0], [40,8704,500,17000], [0.5, 128, 1, 10]], 
-           [[0,0,0,0], [40,8704,2000,1700], [0.5, 128, 1, 10]] ]; 
+E.M = [ [[0,0,0,0], [10,2704,200,17000], [0.5, 128, 1, 10]], 
+           [[0,0,0,0], [40,2748,200,1700], [0.5, 128, 1, 10]], 
+           [[0,0,0,0], [10,8704,200,1700], [0.5, 128, 1, 10]], 
+           [[0,0,0,0], [10,2748,800,1700], [0.5, 128, 1, 10]] ]; 
 
 E._TEMPLATE = {
     LI: '<li><a href="#$id$">$name$</a></li>',
@@ -107,7 +107,7 @@ E.fn = E.prototype = {
                 machines.push(new Machine(E.M[j], self.algs[alg]));
         for (var i = 0; i != indx; i ++) {
             curStatu = self.info[alg][i];
-            if (curStatu.mid == machines.length) {
+            if (curStatu.mid >= machines.length) {
                for (var j = 0; j < 4; j ++)
                 machines.push(new Machine(E.M[j], self.algs[alg]));
             }
@@ -136,7 +136,10 @@ E.fn = E.prototype = {
                    });
                } else {
                     this.containers[alg].print.append($(E._TEMPLATE.ADDM));
-                    this.update(alg, indx, vm, this.addMachineGroup(alg) );
+		    this.addMachineGroup(alg);
+		    var tid = this.algs[alg].getNextMachineIdx(self.proxy(self.machines[alg]),vm);
+		    if (tid == -1)  alert(1);
+		    this.update(alg, indx, vm, tid);
                }
     },
     getAmount: function() {

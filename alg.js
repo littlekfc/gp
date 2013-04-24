@@ -113,6 +113,7 @@ PMLB.fn = PMLB.prototype = {
     },
 
     getNextMachineIdx: function(machine, order) {
+                    this.update(alg, indx, vm, this.addMachineGroup(alg) );
         var pv = E.getPerforVector(machine);
         var ev = this.getExpVector(machine, order);
         var wv = this.getWVector(order);
@@ -126,10 +127,11 @@ PMLB.fn = PMLB.prototype = {
         var mx;
         var res = -1;
         var tmp;
-        var n = 1, y = 1;
+        var n = 10, y = 10000;
         for (var i = 0, l = Rv.length; i != l; i ++) 
             if (Rv[i] != 'NaN') {
                 tmp = Rv[i] * n / (Sv[i] * y);
+		//tmp = Rv[i];
                 if (tmp > mx || mx === undefined) {
                     mx = tmp;
                     res = i;
