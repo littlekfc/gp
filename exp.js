@@ -11,6 +11,7 @@ Utils = {
 function E() {
     this.init();
 }
+E.R = [0.75,0.15,0.05,0.05];
 E.ALG = {
     'PMLB': PMLB,
     'Wheel': Wheel,
@@ -18,10 +19,14 @@ E.ALG = {
 };
 //cpu,memory,bandwidth,storage
 E.VM = [[1,512,12,60],[4,512,12,60],[1,2048,12,60],[1,512,48,60],[1,512,12,1024],
-        [4,2048,48,1024],[16,2048,48,1024],[4,4096,48,1024],[4,2048,96,1024],[4,2048,48,4096],
-        [8,4096,192,4096],[32,4096,192,4096],[8,8192,192,4096],[8,4096,768,4096],[8,4096,192,16384]];
+        [4,2048,48,1024],[16,2048,48,1024],[4,4096,48,1024],[4,2048,96,1024],[4,2048,48,4096] ];
+   //     [8,4096,192,4096],[32,4096,192,4096],[8,8192,192,4096],[8,4096,768,4096],[8,4096,192,16384]];
         //used,total,remain
-E.M = [[0,0,0,0], [40,8704,2000,17000], [0.5, 128, 1, 10]];
+E.M = [ [[0,0,0,0], [10,8704,2000,17000], [0.5, 128, 1, 10]], 
+           [[0,0,0,0], [40,2048,2000,17000], [0.5, 128, 1, 10]], 
+           [[0,0,0,0], [40,8704,500,17000], [0.5, 128, 1, 10]], 
+           [[0,0,0,0], [40,8704,2000,1700], [0.5, 128, 1, 10]] ]; 
+
 E._TEMPLATE = {
     LI: '<li><a href="#$id$">$name$</a></li>',
     TAB: ['<div id="$id$" style="height:500px;overflow:auto;white-space:nowrap;">',
@@ -36,16 +41,75 @@ E._TEMPLATE = {
 };
 E.tabId = 1;
 E.color = ['#a9baff', '#F38630', '#E0E4CC', '#7D4F6D', '#21323D', "#ff0", "#0ff", "#f0f"];
+E.getPerforVector = function (m) {
+    var n = m.length;   
+    var l = m[0][0].length;
+    var res = [];
+    for (var i = 0; i != n; i ++) {
+        res[i] = [];
+        for (var j = 0; j != l; j ++) {
+            res[i][j] = 1.0 - m[i][0][j] / (m[i][1][j] - m[i][2][j] + 0.0);
+        }
+    }
+    return res;
+}
+E.getDeltaPerforVector = function(p, a) {
+    var n = p.length;
+    var l = a.length;
+    var res = [];
+    for (var i = 0; i != n; i ++) {
+        res[i] = [];
+        for (var j = 0; j != l; j ++) 
+            res[i][j] = p[i][j] - a[j];
+    }
+    return res;
+}
+E.getAvePerforVector =  function(m) {
+    var n = m.length;
+    var l = m[0].length;
+    var res = [];
+    for (var j = 0; j != l; j ++) {
+        res[j] = 0.0;
+        for (var i = 0; i != n; i ++)
+            res[j] += m[i][j];
+        res[j] /= n;
+    }
+    return res;        
+}
+
+E.calcLoad = function(m) {
+    var pv = E.getPerforVector(m);
+    var dp = E.getDeltaPerforVector(pv, E.getAvePerforVector(pv));
+    var n = dp.length;
+    var l = 4;
+    var res = [];
+    for (var i = 0; i != n; i ++) {
+        res[i] = 0;
+        for (var j = 0; j != l; j ++)
+            res[i] += dp[i][j] * E.R[j];
+    }
+    var ave = 0;
+    for (var i = 0; i != n; i ++) 
+        ave += res[i];
+    ave /= n; 
+    var tmp = 0;
+    for (var i = 0; i != n; i ++)
+        tmp += (res[i] - ave) * (res[i] - ave);
+    return tmp;
+}
 E.fn = E.prototype = {
     dawn    : function(alg, indx) {
         var machines = [];
         var self = this;
         var curStatu;
-        for (var i = 0; i != self.originMachine; i ++) machines.push(new Machine(E.M, self.algs[alg]));
+        for (var i = 0; i != self.originMachineGroup; i ++) 
+            for (var j = 0; j < 4; j ++) 
+                machines.push(new Machine(E.M[j], self.algs[alg]));
         for (var i = 0; i != indx; i ++) {
             curStatu = self.info[alg][i];
             if (curStatu.mid == machines.length) {
-                machines.push(new Machine(E.M, self.algs[alg]));
+               for (var j = 0; j < 4; j ++)
+                machines.push(new Machine(E.M[j], self.algs[alg]));
             }
             machines[curStatu.mid].update(curStatu.order);
         }
@@ -72,7 +136,7 @@ E.fn = E.prototype = {
                    });
                } else {
                     this.containers[alg].print.append($(E._TEMPLATE.ADDM));
-                    this.update(alg, indx, vm, this.addMachine(alg) );
+                    this.update(alg, indx, vm, this.addMachineGroup(alg) );
                }
     },
     getAmount: function() {
@@ -93,10 +157,13 @@ E.fn = E.prototype = {
     sumary: function() {
         var cur = 0;
         var deployAmount = new PointChart("#deployAmount",this.labels, '部署虚拟机数量');
+        var deployLoad = new PointChart("#deployLoad", this.labels, '负载均衡');
         for (alg in this.algs) {
-            deployAmount.add(this.amounts[alg], E.color[cur ++], alg); 
+            deployAmount.add(this.amounts[alg], E.color[cur], alg);
+            deployLoad.add(this.lbs[alg], E.color[cur ++], alg);
         }
         deployAmount.draw();
+        deployLoad.draw();
     },
     clac: function(cur, total) {
         var self = this;
@@ -113,6 +180,7 @@ E.fn = E.prototype = {
             else self.update(alg, cur, order, id);
             if ( Math.floor(cur / this.cut) * this.cut == cur) {
                 this.amounts[alg].push(this.machines[alg].length);
+                this.lbs[alg].push(E.calcLoad(self.proxy(this.machines[alg])));
             }
         }
             if ( Math.floor(cur / this.cut) * this.cut == cur) {
@@ -137,11 +205,11 @@ E.fn = E.prototype = {
                     print   : $('#' + id + ' .print')
         };
     },
-    addMachine: function(alg, num) {
-        var m = new Machine(E.M, this.algs[alg]);
-        this.machines[alg].push(m);
+    addMachineGroup: function(alg, num) {
+        for (var i = 0; i < 4; i ++) 
+            this.machines[alg].push(new Machine(E.M[i], this.algs[alg]));
         if (typeof num == 'number') {
-            for (var i = 1; i < num; i ++) this.addMachine(alg); 
+            for (var i = 1; i < num; i ++) this.addMachineGroup(alg); 
         }
         return  this.machines[alg].length - 1;
     },
@@ -174,8 +242,8 @@ E.fn = E.prototype = {
             self.clearContainer();
             for (alg in self.algs) {
                 self.machines[alg] = [];
-                self.addMachine(alg, 2);
-                self.originMachine = 2;
+                self.addMachineGroup(alg, 2);
+                self.originMachineGroup = 2;
                 self.amounts[alg] = [];
                 self.labels = [];
                 self.lbs[alg] = [];

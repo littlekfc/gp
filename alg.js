@@ -42,18 +42,6 @@ function PMLB(container) {
     this.container = $(container);
 }
 PMLB.fn = PMLB.prototype = {
-    getPerforVector: function(m) {
-        var n = m.length;   
-        var l = m[0][0].length;
-        var res = [];
-        for (var i = 0; i != n; i ++) {
-            res[i] = [];
-            for (var j = 0; j != l; j ++) {
-                res[i][j] = 1.0 - m[i][0][j] / (m[i][1][j] - m[i][2][j] + 0.0);
-            }
-        }
-        return res;
-    },
     getExpVector: function(m, o) {
         var n = m.length;
         var l = o.length;
@@ -104,32 +92,9 @@ PMLB.fn = PMLB.prototype = {
         return res;
     },
 
-    getAvePerforVector: function(m) {
-        var n = m.length;
-        var l = m[0].length;
-        var res = [];
-        for (var j = 0; j != l; j ++) {
-            res[j] = 0.0;
-            for (var i = 0; i != n; i ++)
-                res[j] += m[i][j];
-            res[j] /= n;
-        }
-        return res;        
-    },
 
-    getDeltaPerforVector: function(p, a) {
-        var n = p.length;
-        var l = a.length;
-        var res = [];
-        for (var i = 0; i != n; i ++) {
-            res[i] = [];
-            for (var j = 0; j != l; j ++) 
-                res[i][j] = p[i][j] - a[j];
-        }
-        return res;
-    },
     getRVector: function(m) {
-        return [0.25,0.25,0.25,0.25];
+        return E.R;
     },
     getLoadVector: function(p, r, s) {
         var n = p.length;
@@ -148,14 +113,14 @@ PMLB.fn = PMLB.prototype = {
     },
 
     getNextMachineIdx: function(machine, order) {
-        var pv = this.getPerforVector(machine);
+        var pv = E.getPerforVector(machine);
         var ev = this.getExpVector(machine, order);
         var wv = this.getWVector(order);
         var Qv = this.getQVector(pv, ev);
         var Sv = this.getSVector(Qv, wv);
 
-        var aPV = this.getAvePerforVector(pv);
-        var dPV = this.getDeltaPerforVector(pv, aPV);
+        var aPV = E.getAvePerforVector(pv);
+        var dPV = E.getDeltaPerforVector(pv, aPV);
         var rv = this.getRVector(machine);
         var Rv = this.getLoadVector(dPV, rv, Sv);
         var mx;
