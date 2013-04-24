@@ -113,7 +113,6 @@ PMLB.fn = PMLB.prototype = {
     },
 
     getNextMachineIdx: function(machine, order) {
-                    this.update(alg, indx, vm, this.addMachineGroup(alg) );
         var pv = E.getPerforVector(machine);
         var ev = this.getExpVector(machine, order);
         var wv = this.getWVector(order);
